@@ -57,7 +57,7 @@ sudo systemctl restart docker
 ```
 3. [Download and run the image:](https://hub.docker.com/repository/docker/milesial/unet)
 ```bash
-sudo docker run --rm --shm-size=8g --ulimit memlock=-1 --gpus all -it milesial/unet
+sudo docker run --rm -v $(pwd):/workspace/autoseg --shm-size=8g --ulimit memlock=-1 --gpus all -it milesial/unet
 ```
 
 4. Download the data and run training:
