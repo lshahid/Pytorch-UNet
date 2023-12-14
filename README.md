@@ -57,7 +57,7 @@ sudo systemctl restart docker
 ```
 3. [Download and run the image:](https://hub.docker.com/repository/docker/milesial/unet)
 ```bash
-sudo docker run --rm -v $(pwd):/workspace/autoseg --shm-size=8g --ulimit memlock=-1 --gpus all -it milesial/unet
+sudo docker run --rm -v $(pwd):/workspace/autoseg --shm-size=8g --ulimit memlock=-1 --gpus all -it lshahid/autoseg
 ```
 
 4. Download the data and run training:
@@ -77,11 +77,11 @@ It can be easily used for multiclass segmentation, portrait segmentation, medica
 
 ### Docker
 
-A docker image containing the code and the dependencies is available on [DockerHub](https://hub.docker.com/repository/docker/milesial/unet).
+A docker image containing the code and the dependencies is available on [DockerHub](https://hub.docker.com/r/lshahid/autoseg).
 You can download and jump in the container with ([docker >=19.03](https://docs.docker.com/get-docker/)):
 
 ```console
-docker run -it --rm -v $(pwd):/workspace/autoseg --shm-size=8g --ulimit memlock=-1 --gpus all milesial/unet
+docker run -it --rm -v $(pwd):/workspace/autoseg --shm-size=8g --ulimit memlock=-1 --gpus all lshahid/autoseg
 ```
 
 
