@@ -25,22 +25,9 @@ for mask_name in os.listdir(true_masks_dir):
     
     # Convert to arrays
     true_arr = np.array(true_mask)
-    pred_arr = ((np.array(pred_mask) - 255) * -1).astype('uint8')
+    pred_arr = np.invert(pred_mask)
     
     # Difference masks
     diff_arr = pred_arr - true_arr
     diff_mask_name = os.path.join(diff_masks_dir, mask_name)
     imageio.imsave(diff_mask_name, diff_arr)
-    
-# man_img = Image.open("test3/output3/truth/BPH009_Phase023_0057.gif").convert('L')
-# man_arr = np.array(man_img)
-
-# auto_img = Image.open("test3/output3/BPH009_Phase023_0057.gif").convert('L')
-# auto_arr = (np.array(auto_img) - 255) * -1
-# auto_arr = auto_arr.astype('uint8')
-
-# diff_arr = auto_arr - man_arr
-# print(np.max(diff_arr))
-# print(np.min(diff_arr))
-
-# imageio.imsave('BPH009_Phase023_0057_diff.gif', diff_arr)
