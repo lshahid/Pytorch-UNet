@@ -57,7 +57,7 @@ sudo systemctl restart docker
 ```
 3. [Download and run the image:](https://hub.docker.com/repository/docker/milesial/unet)
 ```bash
-sudo docker run --rm -v $(pwd):/workspace/autoseg --shm-size=8g --ulimit memlock=-1 --gpus all -it lshahid/autoseg
+sudo docker run --rm --shm-size=8g --ulimit memlock=-1 --gpus all -it lshahid/autoseg:v2.00
 ```
 
 4. Download the data and run training:
@@ -81,7 +81,7 @@ A docker image containing the code and the dependencies is available on [DockerH
 You can download and jump in the container with ([docker >=19.03](https://docs.docker.com/get-docker/)):
 
 ```console
-docker run -it --rm -v $(pwd):/workspace/autoseg --shm-size=8g --ulimit memlock=-1 --gpus all lshahid/autoseg
+docker run --rm --shm-size=8g --ulimit memlock=-1 --gpus all -it lshahid/autoseg:v2.00
 ```
 
 
