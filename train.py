@@ -37,7 +37,13 @@ def train_model(
         weight_decay: float = 1e-8,
         momentum: float = 0.999,
         gradient_clipping: float = 1.0,
+        work_dir: str='.',
 ):
+    # Concatenate working directory to paths
+    dir_img = Path(work_dir) / 'data/imgs/'
+    dir_mask = Path(work_dir) / 'data/masks/'
+    dir_checkpoint = Path(work_dir) / 'checkpoints/'
+
     # 1. Create dataset
     try:
         dataset = CarvanaDataset(dir_img, dir_mask, img_scale)
@@ -179,6 +185,7 @@ def get_args():
     parser.add_argument('--amp', action='store_true', default=False, help='Use mixed precision')
     parser.add_argument('--bilinear', action='store_true', default=False, help='Use bilinear upsampling')
     parser.add_argument('--classes', '-c', type=int, default=2, help='Number of classes')
+    parser.add_argument('--work-dir', '-w', dest='wd', type=str, default='.', help='Working directory')
 
     return parser.parse_args()
 
@@ -217,7 +224,8 @@ if __name__ == '__main__':
             device=device,
             img_scale=args.scale,
             val_percent=args.val / 100,
-            amp=args.amp
+            amp=args.amp,
+            work_dir=args.wd
         )
     except torch.cuda.OutOfMemoryError:
         logging.error('Detected OutOfMemoryError! '
@@ -233,5 +241,6 @@ if __name__ == '__main__':
             device=device,
             img_scale=args.scale,
             val_percent=args.val / 100,
-            amp=args.amp
+            amp=args.amp,
+            work_dir=args.wd
         )
