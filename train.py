@@ -13,16 +13,11 @@ from torch import optim
 from torch.utils.data import DataLoader, random_split
 from tqdm import tqdm
 
-# import wandb
+import wandb
 from evaluate import evaluate
 from unet import UNet
 from utils.data_loading import BasicDataset, CarvanaDataset
 from utils.dice_score import dice_loss
-
-dir_img = Path('./data/imgs/')
-dir_mask = Path('./data/masks/')
-dir_checkpoint = Path('./checkpoints/')
-
 
 def train_model(
         model,
@@ -38,6 +33,7 @@ def train_model(
         momentum: float = 0.999,
         gradient_clipping: float = 1.0,
         work_dir: str='.',
+        wnb: bool = False,
 ):
     # Concatenate working directory to paths
     dir_img = Path(work_dir) / 'data/imgs/'
@@ -60,12 +56,13 @@ def train_model(
     train_loader = DataLoader(train_set, shuffle=True, **loader_args)
     val_loader = DataLoader(val_set, shuffle=False, drop_last=True, **loader_args)
 
-    # # (Initialize logging)
-    # experiment = wandb.init(project='U-Net', resume='allow', anonymous='must')
-    # experiment.config.update(
-    #     dict(epochs=epochs, batch_size=batch_size, learning_rate=learning_rate,
-    #          val_percent=val_percent, save_checkpoint=save_checkpoint, img_scale=img_scale, amp=amp)
-    # )
+    if wnb:
+        # (Initialize logging)
+        experiment = wandb.init(project='U-Net', resume='allow', anonymous='must')
+        experiment.config.update(
+            dict(epochs=epochs, batch_size=batch_size, learning_rate=learning_rate,
+                val_percent=val_percent, save_checkpoint=save_checkpoint, img_scale=img_scale, amp=amp)
+        )
 
     logging.info(f'''Starting training:
         Epochs:          {epochs}
@@ -125,44 +122,50 @@ def train_model(
                 pbar.update(images.shape[0])
                 global_step += 1
                 epoch_loss += loss.item()
-                # experiment.log({
-                #     'train loss': loss.item(),
-                #     'step': global_step,
-                #     'epoch': epoch
-                # })
+
+                if wnb:
+                    experiment.log({
+                        'train loss': loss.item(),
+                        'step': global_step,
+                        'epoch': epoch
+                    })
                 pbar.set_postfix(**{'loss (batch)': loss.item()})
 
                 # Evaluation round
                 division_step = (n_train // (5 * batch_size))
                 if division_step > 0:
                     if global_step % division_step == 0:
-                        # histograms = {}
-                        # for tag, value in model.named_parameters():
-                        #     tag = tag.replace('/', '.')
-                        #     if not (torch.isinf(value) | torch.isnan(value)).any():
-                        #         histograms['Weights/' + tag] = wandb.Histogram(value.data.cpu())
-                        #     if not (torch.isinf(value.grad) | torch.isnan(value.grad)).any():
-                        #         histograms['Gradients/' + tag] = wandb.Histogram(value.grad.data.cpu())
+
+                        if wnb:
+                            histograms = {}
+                            for tag, value in model.named_parameters():
+                                tag = tag.replace('/', '.')
+                                if not (torch.isinf(value) | torch.isnan(value)).any():
+                                    histograms['Weights/' + tag] = wandb.Histogram(value.data.cpu())
+                                if not (torch.isinf(value.grad) | torch.isnan(value.grad)).any():
+                                    histograms['Gradients/' + tag] = wandb.Histogram(value.grad.data.cpu())
 
                         val_score = evaluate(model, val_loader, device, amp)
                         scheduler.step(val_score)
 
                         logging.info('Validation Dice score: {}'.format(val_score))
-                        # try:
-                        #     experiment.log({
-                        #         'learning rate': optimizer.param_groups[0]['lr'],
-                        #         'validation Dice': val_score,
-                        #         'images': wandb.Image(images[0].cpu()),
-                        #         'masks': {
-                        #             'true': wandb.Image(true_masks[0].float().cpu()),
-                        #             'pred': wandb.Image(masks_pred.argmax(dim=1)[0].float().cpu()),
-                        #         },
-                        #         'step': global_step,
-                        #         'epoch': epoch,
-                        #         **histograms
-                        #     })
-                        # except:
-                        #     pass
+
+                        if wnb:
+                            try:
+                                experiment.log({
+                                    'learning rate': optimizer.param_groups[0]['lr'],
+                                    'validation Dice': val_score,
+                                    'images': wandb.Image(images[0].cpu()),
+                                    'masks': {
+                                        'true': wandb.Image(true_masks[0].float().cpu()),
+                                        'pred': wandb.Image(masks_pred.argmax(dim=1)[0].float().cpu()),
+                                    },
+                                    'step': global_step,
+                                    'epoch': epoch,
+                                    **histograms
+                                })
+                            except:
+                                pass
 
         if save_checkpoint:
             Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
@@ -186,6 +189,7 @@ def get_args():
     parser.add_argument('--bilinear', action='store_true', default=False, help='Use bilinear upsampling')
     parser.add_argument('--classes', '-c', type=int, default=2, help='Number of classes')
     parser.add_argument('--work-dir', '-w', dest='wd', type=str, default='.', help='Working directory')
+    parser.add_argument('--wnb', action='store_true', default=False, help='Use Weights & Biases')
 
     return parser.parse_args()
 
@@ -225,7 +229,8 @@ if __name__ == '__main__':
             img_scale=args.scale,
             val_percent=args.val / 100,
             amp=args.amp,
-            work_dir=args.wd
+            work_dir=args.wd,
+            wnb=args.wnb
         )
     except torch.cuda.OutOfMemoryError:
         logging.error('Detected OutOfMemoryError! '
@@ -242,5 +247,6 @@ if __name__ == '__main__':
             img_scale=args.scale,
             val_percent=args.val / 100,
             amp=args.amp,
-            work_dir=args.wd
+            work_dir=args.wd,
+            wnb=args.wnb
         )
