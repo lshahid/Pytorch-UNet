@@ -1,0 +1,42 @@
+# Submit file to train 2D U-Net
+
+# Must set the universe to Docker
+universe = docker
+docker_image = lshahid/autoseg:v2.01
+
+# Set the log, error, and output files 
+log = train_2D.log.txt
+error = train_2D.err.txt
+output = train_2D.out.txt
+
+# Set the executable to run
+executable = train_2D.sh
+arguments = $(Process)
+
+# Transfer data to the compute node
+transfer_input_files = data.tar.gz
+
+# Transfer checkpoints back to submit node
+transfer_output_files = checkpoints.tar.gz
+
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+
+# We require a machine with a compatible version of the CUDA driver
+require_gpus = (DriverVersion >= 12.1)
+
+# We must request 1 CPU in addition to 1 GPU
+request_cpus = 1
+request_gpus = 1
+
+# Select some memory and disk space
+request_memory = 4GB
+request_disk = 6GB
+
+# Opt in to using CHTC GPU Lab resources
++WantGPULab = true
+# Specify short job type: "short", "medium", or "long"
++GPUJobLength = "short"
+
+# Tell HTCondor to run 1 instances of our job:
+queue 1
