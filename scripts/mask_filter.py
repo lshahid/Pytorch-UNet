@@ -38,9 +38,9 @@ def filter(work_dir: str='..', thresh: int=10):
 
                 # Move images and masks
                 shutil.move(os.path.join(dir_img_all, subject, mask_name[:-4] + '.jpg'),
-                            os.path.join(dir_img_filtered, subject, mask_name[:-4] + '.jpg'))
+                            os.path.join(dir_img_filtered, mask_name[:-4] + '.jpg'))
                 shutil.move(os.path.join(dir_masks_all, subject, mask_name),
-                            os.path.join(dir_masks_filtered, subject, mask_name))
+                            os.path.join(dir_masks_filtered, mask_name))
 
 # Command-line arguments
 def get_args():
@@ -50,5 +50,6 @@ def get_args():
 
     return parser.parse_args()
 
+# Get arguments, and filter out images and masks
 args = get_args()
 filter(work_dir=args.wd, thresh=args.threshold)
