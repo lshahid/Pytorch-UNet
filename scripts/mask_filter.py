@@ -7,11 +7,11 @@ images with bladders are used for training.
 import argparse
 from pathlib import Path
 import os
-import imageio
+import imageio.v2 as imageio
 import numpy as np
 import shutil
 
-def filter(work_dir: str='..', thresh: int=10):
+def filter(work_dir: str='..', thresh: int=500):
 
     # Concatenate working directory to paths
     dir_img_all = Path(work_dir) / 'data_all/imgs/'
@@ -46,7 +46,7 @@ def filter(work_dir: str='..', thresh: int=10):
 def get_args():
     parser = argparse.ArgumentParser(description='Filter out image-mask pairs that have a bladder.')
     parser.add_argument('--work-dir', '-w', dest='wd', type=str, default='..', help='Working directory')
-    parser.add_argument('--threshold', '-t', type=int, default=10, help='Threshold for number of pixels')
+    parser.add_argument('--threshold', '-t', type=int, default=500, help='Threshold for number of pixels')
 
     return parser.parse_args()
 
