@@ -7,7 +7,7 @@ images with bladders are used for training.
 import argparse
 from pathlib import Path
 import os
-import imageio.v2 as imageio
+import imageio
 import numpy as np
 import shutil
 
@@ -20,6 +20,8 @@ def filter(work_dir: str='..', thresh: int=500):
     dir_masks_filtered = Path(work_dir) / 'data/masks/'
 
     # Iterate over all masks
+    print('List of images used for training')
+
     for subject in os.listdir(dir_masks_all):
         for mask_name in os.listdir(os.path.join(dir_masks_all, subject)):
 
@@ -41,6 +43,10 @@ def filter(work_dir: str='..', thresh: int=500):
                             os.path.join(dir_img_filtered, mask_name[:-4] + '.jpg'))
                 shutil.move(os.path.join(dir_masks_all, subject, mask_name),
                             os.path.join(dir_masks_filtered, mask_name))
+
+		print(mask_name[:-4])
+
+    print('\n')
 
 # Command-line arguments
 def get_args():
