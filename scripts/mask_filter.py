@@ -44,7 +44,7 @@ def filter(work_dir: str='..', thresh: int=500):
                 shutil.move(os.path.join(dir_masks_all, subject, mask_name),
                             os.path.join(dir_masks_filtered, mask_name))
 
-		print(mask_name[:-4])
+                print(mask_name[:-4])
 
     print('\n')
 
