@@ -106,9 +106,17 @@ class BasicDataset(Dataset):
         img = self.preprocess(self.mask_values, img, self.scale, is_mask=False)
         mask = self.preprocess(self.mask_values, mask, self.scale, is_mask=True)
 
+        # Set mask value to 0 if outside bladder, set to 1 if inside bladder (reverse Pillow's convention)
+        if np.count_nonzero(mask)  != 0:
+            mask_flipped = np.where((mask==0)|(mask==1), mask^1, mask)
+        else:
+            mask_flipped = mask
+
+        # print('Unique mask values: ', np.unique(mask_flipped, return_counts=True))
+
         return {
             'image': torch.as_tensor(img.copy()).float().contiguous(),
-            'mask': torch.as_tensor(mask.copy()).long().contiguous()
+            'mask': torch.as_tensor(mask_flipped.copy()).long().contiguous()
         }
 
 

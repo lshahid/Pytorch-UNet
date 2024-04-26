@@ -106,12 +106,14 @@ def train_model(
                         loss = criterion(masks_pred.squeeze(1), true_masks.float())
                         loss += dice_loss(F.sigmoid(masks_pred.squeeze(1)), true_masks.float(), multiclass=False)
                     else:
-                        loss = criterion(masks_pred, true_masks)
-                        loss += dice_loss(
-                            F.softmax(masks_pred, dim=1).float(),
-                            F.one_hot(true_masks, model.n_classes).permute(0, 3, 1, 2).float(),
-                            multiclass=True
-                        )
+                        loss_criterion = criterion(masks_pred, true_masks)
+                        # print('Loss (criterion): ', loss_criterion)
+                        loss_dice = dice_loss(F.softmax(masks_pred, dim=1).float(),
+                                              F.one_hot(true_masks, model.n_classes).permute(0, 3, 1, 2).float(),
+                                              multiclass=True)
+                        # print('Loss (dice): ', loss_dice)
+                        loss = loss_criterion + loss_dice
+                        # print('Loss (total): ', loss, '\n')
 
                 optimizer.zero_grad(set_to_none=True)
                 grad_scaler.scale(loss).backward()
