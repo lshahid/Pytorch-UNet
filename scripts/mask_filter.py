@@ -25,12 +25,13 @@ def filter(work_dir: str='..', thresh: int=500):
     for subject in os.listdir(dir_masks_all):
         for mask_name in os.listdir(os.path.join(dir_masks_all, subject)):
 
+            file_name = mask_name.split('.')[0]
+
             # Import mask
             mask = imageio.imread(os.path.join(dir_masks_all, subject, mask_name))
-            mask_arr = np.array(mask)
 
             # Number of bladder pixels
-            num_pixel = np.count_nonzero(mask_arr)
+            num_pixel = np.count_nonzero(mask)
 
             if num_pixel >= thresh:
 
@@ -38,15 +39,14 @@ def filter(work_dir: str='..', thresh: int=500):
                 Path(os.path.join(dir_img_filtered, subject)).mkdir(parents=True, exist_ok=True)
                 Path(os.path.join(dir_masks_filtered, subject)).mkdir(parents=True, exist_ok=True)
 
+
                 # Move images and masks
-                shutil.move(os.path.join(dir_img_all, subject, mask_name[:-4] + '.jpg'),
-                            os.path.join(dir_img_filtered, mask_name[:-4] + '.jpg'))
+                shutil.move(os.path.join(dir_img_all, subject, file_name + '.jpg'),
+                            os.path.join(dir_img_filtered, file_name + '.jpg'))
                 shutil.move(os.path.join(dir_masks_all, subject, mask_name),
                             os.path.join(dir_masks_filtered, mask_name))
 
-                print(mask_name[:-4])
-
-    print('\n')
+                print(file_name)
 
 # Command-line arguments
 def get_args():
