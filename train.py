@@ -86,6 +86,7 @@ def train_model(
 
     # 5. Begin training
     for epoch in range(1, epochs + 1):
+        print('Epoch: ', epoch, '\n')
         model.train()
         epoch_loss = 0
         with tqdm(total=n_train, desc=f'Epoch {epoch}/{epochs}', unit='img') as pbar:
@@ -107,13 +108,13 @@ def train_model(
                         loss += dice_loss(F.sigmoid(masks_pred.squeeze(1)), true_masks.float(), multiclass=False)
                     else:
                         loss_criterion = criterion(masks_pred, true_masks)
-                        # print('Loss (criterion): ', loss_criterion)
+                        print('Loss (criterion): ', loss_criterion.item())
                         loss_dice = dice_loss(F.softmax(masks_pred, dim=1).float(),
                                               F.one_hot(true_masks, model.n_classes).permute(0, 3, 1, 2).float(),
                                               multiclass=True)
-                        # print('Loss (dice): ', loss_dice)
+                        print('Loss (dice): ', loss_dice.item())
                         loss = loss_criterion + loss_dice
-                        # print('Loss (total): ', loss, '\n')
+                        print('Loss (total): ', loss.item(), '\n')
 
                 optimizer.zero_grad(set_to_none=True)
                 grad_scaler.scale(loss).backward()
