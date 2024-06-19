@@ -6,19 +6,19 @@ docker_image = lshahid/autoseg:v2.05
 # docker_pull_policy = always
 
 # Set the log, error, and output files 
-log = train_2D.log.txt
-error = train_2D.err.txt
-output = train_2D.out.txt
+log = predict_2D.log.txt
+error = predict_2D.err.txt
+output = predict_2D.out.txt
 
 # Set the executable to run
-executable = train_2D.sh
+executable = predict_2D.sh
 arguments = $(Process)
 
 # Transfer data to the compute node
-transfer_input_files = data.tar.gz
+transfer_input_files = pred_imgs.tar.gz, checkpoint.pth
 
 # Transfer checkpoints back to submit node
-transfer_output_files = checkpoints.tar.gz
+transfer_output_files = pred_masks.tar.gz
 
 should_transfer_files = YES
 when_to_transfer_output = ON_EXIT
@@ -31,8 +31,8 @@ request_cpus = 1
 request_gpus = 1
 
 # Select some memory and disk space
-request_memory = 50GB
-request_disk = 50GB
+request_memory = 30GB
+request_disk = 30GB
 
 # Opt in to using CHTC GPU Lab resources
 +WantGPULab = true
