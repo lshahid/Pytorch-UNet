@@ -108,11 +108,16 @@ class BasicDataset(Dataset):
 
         # Set mask value to 0 if outside bladder, set to 1 if inside bladder (reverse Pillow's convention)
         if np.count_nonzero(mask)  != 0:
-            mask_flipped = np.where((mask==0)|(mask==1), mask^1, mask)
+            if np.count_nonzero(mask) > 0.5*np.size(mask):
+                mask_flipped = np.where((mask==0)|(mask==1), mask^1, mask)
+            else:
+                mask_flipped = mask
         else:
             mask_flipped = mask
 
-        # print('Unique mask values: ', np.unique(mask_flipped, return_counts=True))
+        if np.count_nonzero(mask_flipped) >= 0.5*np.size(mask_flipped):
+            print('Error: Majority of pixels is bladder!')
+            print('Name:', name, ', Size:', np.size(mask_flipped),', Unique mask values:', np.unique(mask_flipped, return_counts=True))
 
         return {
             'image': torch.as_tensor(img.copy()).float().contiguous(),
