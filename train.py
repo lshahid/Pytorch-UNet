@@ -13,11 +13,16 @@ from torch import optim
 from torch.utils.data import DataLoader, random_split
 from tqdm import tqdm
 
-import wandb
+#import wandb
 from evaluate import evaluate
 from unet import UNet
-from utils.data_loading import BasicDataset, CarvanaDataset
-from utils.dice_score import dice_loss
+from data_loading import BasicDataset, CarvanaDataset
+from dice_score import dice_loss
+
+dir_img = Path('./data_1c_ns/imgs/')
+dir_mask = Path('./data_1c_ns/masks/')
+dir_checkpoint = Path('./checkpoints_1c_ns/')
+
 
 def train_model(
         model,
@@ -27,19 +32,12 @@ def train_model(
         learning_rate: float = 1e-5,
         val_percent: float = 0.1,
         save_checkpoint: bool = True,
-        img_scale: float = 0.5,
+        img_scale: float = 1.0,
         amp: bool = False,
         weight_decay: float = 1e-8,
         momentum: float = 0.999,
         gradient_clipping: float = 1.0,
-        work_dir: str='.',
-        wnb: bool = False,
 ):
-    # Concatenate working directory to paths
-    dir_img = Path(work_dir) / 'data/imgs/'
-    dir_mask = Path(work_dir) / 'data/masks/'
-    dir_checkpoint = Path(work_dir) / 'checkpoints/'
-
     # 1. Create dataset
     try:
         dataset = CarvanaDataset(dir_img, dir_mask, img_scale)
@@ -56,13 +54,12 @@ def train_model(
     train_loader = DataLoader(train_set, shuffle=True, **loader_args)
     val_loader = DataLoader(val_set, shuffle=False, drop_last=True, **loader_args)
 
-    if wnb:
-        # (Initialize logging)
-        experiment = wandb.init(project='U-Net', resume='allow', anonymous='must')
-        experiment.config.update(
-            dict(epochs=epochs, batch_size=batch_size, learning_rate=learning_rate,
-                val_percent=val_percent, save_checkpoint=save_checkpoint, img_scale=img_scale, amp=amp)
-        )
+    # (Initialize logging)
+    #experiment = wandb.init(project='U-Net', resume='allow', anonymous='must')
+    #experiment.config.update(
+    #    dict(epochs=epochs, batch_size=batch_size, learning_rate=learning_rate,
+    #         val_percent=val_percent, save_checkpoint=save_checkpoint, img_scale=img_scale, amp=amp)
+    #)
 
     logging.info(f'''Starting training:
         Epochs:          {epochs}
@@ -77,8 +74,9 @@ def train_model(
     ''')
 
     # 4. Set up the optimizer, the loss, the learning rate scheduler and the loss scaling for AMP
-    optimizer = optim.RMSprop(model.parameters(),
-                              lr=learning_rate, weight_decay=weight_decay, momentum=momentum, foreach=True)
+    #optimizer = optim.RMSprop(model.parameters(),
+    #                          lr=learning_rate, weight_decay=weight_decay, momentum=momentum, foreach=True)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=5)  # goal: maximize Dice score
     grad_scaler = torch.cuda.amp.GradScaler(enabled=amp)
     criterion = nn.CrossEntropyLoss() if model.n_classes > 1 else nn.BCEWithLogitsLoss()
@@ -86,12 +84,11 @@ def train_model(
 
     # 5. Begin training
     for epoch in range(1, epochs + 1):
-        print('Epoch: ', epoch, '\n')
         model.train()
         epoch_loss = 0
         with tqdm(total=n_train, desc=f'Epoch {epoch}/{epochs}', unit='img') as pbar:
             for batch in train_loader:
-                images, true_masks = batch['image'], batch['mask']
+                names, images, true_masks = batch['name'], batch['image'], batch['mask']
 
                 assert images.shape[1] == model.n_channels, \
                     f'Network has been defined with {model.n_channels} input channels, ' \
@@ -107,14 +104,16 @@ def train_model(
                         loss = criterion(masks_pred.squeeze(1), true_masks.float())
                         loss += dice_loss(F.sigmoid(masks_pred.squeeze(1)), true_masks.float(), multiclass=False)
                     else:
-                        loss_criterion = criterion(masks_pred, true_masks)
-                        loss_dice = dice_loss(F.softmax(masks_pred, dim=1).float(),
-                                              F.one_hot(true_masks, model.n_classes).permute(0, 3, 1, 2).float(),
-                                              multiclass=True)
-                        loss = loss_criterion + loss_dice
+                        loss = criterion(masks_pred, true_masks)
+                        loss += dice_loss(
+                            F.softmax(masks_pred, dim=1).float(),
+                            F.one_hot(true_masks, model.n_classes).permute(0, 3, 1, 2).float(),
+                            multiclass=True
+                        )
 
                 optimizer.zero_grad(set_to_none=True)
                 grad_scaler.scale(loss).backward()
+                grad_scaler.unscale_(optimizer)
                 torch.nn.utils.clip_grad_norm_(model.parameters(), gradient_clipping)
                 grad_scaler.step(optimizer)
                 grad_scaler.update()
@@ -122,54 +121,44 @@ def train_model(
                 pbar.update(images.shape[0])
                 global_step += 1
                 epoch_loss += loss.item()
-
-                if wnb:
-                    experiment.log({
-                        'train loss': loss.item(),
-                        'step': global_step,
-                        'epoch': epoch
-                    })
+                #experiment.log({
+                #    'train loss': loss.item(),
+                #    'step': global_step,
+                #    'epoch': epoch
+                #})
                 pbar.set_postfix(**{'loss (batch)': loss.item()})
 
                 # Evaluation round
                 division_step = (n_train // (5 * batch_size))
                 if division_step > 0:
                     if global_step % division_step == 0:
-
-                        if wnb:
-                            histograms = {}
-                            for tag, value in model.named_parameters():
-                                tag = tag.replace('/', '.')
-                                if not (torch.isinf(value) | torch.isnan(value)).any():
-                                    histograms['Weights/' + tag] = wandb.Histogram(value.data.cpu())
-                                if not (torch.isinf(value.grad) | torch.isnan(value.grad)).any():
-                                    histograms['Gradients/' + tag] = wandb.Histogram(value.grad.data.cpu())
+                        #histograms = {}
+                        #for tag, value in model.named_parameters():
+                        #    tag = tag.replace('/', '.')
+                        #    if not (torch.isinf(value) | torch.isnan(value)).any():
+                        #        histograms['Weights/' + tag] = wandb.Histogram(value.data.cpu())
+                        #    if not (torch.isinf(value.grad) | torch.isnan(value.grad)).any():
+                        #        histograms['Gradients/' + tag] = wandb.Histogram(value.grad.data.cpu())
 
                         val_score = evaluate(model, val_loader, device, amp)
                         scheduler.step(val_score)
 
                         logging.info('Validation Dice score: {}'.format(val_score))
-                        print('Loss (criterion): ', loss_criterion.item())
-                        print('Loss (dice): ', loss_dice.item())
-                        print('Loss (total): ', loss.item())
-                        print('Dice score: ', val_score.item(), '\n')
-
-                        if wnb:
-                            try:
-                                experiment.log({
-                                    'learning rate': optimizer.param_groups[0]['lr'],
-                                    'validation Dice': val_score,
-                                    'images': wandb.Image(images[0].cpu()),
-                                    'masks': {
-                                        'true': wandb.Image(true_masks[0].float().cpu()),
-                                        'pred': wandb.Image(masks_pred.argmax(dim=1)[0].float().cpu()),
-                                    },
-                                    'step': global_step,
-                                    'epoch': epoch,
-                                    **histograms
-                                })
-                            except:
-                                pass
+                        #try:
+                        #    experiment.log({
+                        #        'learning rate': optimizer.param_groups[0]['lr'],
+                        #        'validation Dice': val_score,
+                        #        'images': wandb.Image(images[0].cpu()),
+                        #        'masks': {
+                        #            'true': wandb.Image(true_masks[0].float().cpu()),
+                        #            'pred': wandb.Image(masks_pred.argmax(dim=1)[0].float().cpu()),
+                        #        },
+                        #        'step': global_step,
+                        #        'epoch': epoch,
+                        #       **histograms
+                        #    })
+                        #except:
+                        #    pass
 
         if save_checkpoint:
             Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
@@ -186,14 +175,12 @@ def get_args():
     parser.add_argument('--learning-rate', '-l', metavar='LR', type=float, default=1e-5,
                         help='Learning rate', dest='lr')
     parser.add_argument('--load', '-f', type=str, default=False, help='Load model from a .pth file')
-    parser.add_argument('--scale', '-s', type=float, default=0.5, help='Downscaling factor of the images')
+    parser.add_argument('--scale', '-s', type=float, default=1.0, help='Downscaling factor of the images')
     parser.add_argument('--validation', '-v', dest='val', type=float, default=10.0,
                         help='Percent of the data that is used as validation (0-100)')
     parser.add_argument('--amp', action='store_true', default=False, help='Use mixed precision')
     parser.add_argument('--bilinear', action='store_true', default=False, help='Use bilinear upsampling')
     parser.add_argument('--classes', '-c', type=int, default=2, help='Number of classes')
-    parser.add_argument('--work-dir', '-w', dest='wd', type=str, default='.', help='Working directory')
-    parser.add_argument('--wnb', action='store_true', default=False, help='Use Weights & Biases')
 
     return parser.parse_args()
 
@@ -208,7 +195,7 @@ if __name__ == '__main__':
     # Change here to adapt to your data
     # n_channels=3 for RGB images
     # n_classes is the number of probabilities you want to get per pixel
-    model = UNet(n_channels=3, n_classes=args.classes, bilinear=args.bilinear)
+    model = UNet(n_channels=1, n_classes=args.classes, bilinear=args.bilinear)
     model = model.to(memory_format=torch.channels_last)
 
     logging.info(f'Network:\n'
@@ -232,9 +219,7 @@ if __name__ == '__main__':
             device=device,
             img_scale=args.scale,
             val_percent=args.val / 100,
-            amp=args.amp,
-            work_dir=args.wd,
-            wnb=args.wnb
+            amp=args.amp
         )
     except torch.cuda.OutOfMemoryError:
         logging.error('Detected OutOfMemoryError! '
@@ -250,7 +235,5 @@ if __name__ == '__main__':
             device=device,
             img_scale=args.scale,
             val_percent=args.val / 100,
-            amp=args.amp,
-            work_dir=args.wd,
-            wnb=args.wnb
+            amp=args.amp
         )
