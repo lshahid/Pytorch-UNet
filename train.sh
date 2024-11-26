@@ -14,4 +14,4 @@ time python3 train.py --amp -e 30
 tar czf checkpoints.tar.gz checkpoints/
 
 # Remove data
-rm -r data_1c_ns/ data_1c_ns.tar.gz
+rm -r data_1c_s/ data_1c_s.tar.gz
