@@ -1,27 +1,29 @@
 import argparse
 import logging
 import os
-import random
-import sys
+# import random
+# import sys
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torchvision.transforms as transforms
-import torchvision.transforms.functional as TF
+# import torchvision.transforms as transforms
+# import torchvision.transforms.functional as TF
 from pathlib import Path
 from torch import optim
 from torch.utils.data import DataLoader, random_split
 from tqdm import tqdm
+# import pdb
+import numpy as np
 
 #import wandb
 from evaluate import evaluate
 from unet import UNet
-from data_loading import BasicDataset, CarvanaDataset
+from data_loading import BasicDataset
 from dice_score import dice_loss
 
-dir_img = Path('./data_1c_ns/imgs/')
-dir_mask = Path('./data_1c_ns/masks/')
-dir_checkpoint = Path('./checkpoints_1c_ns/')
+dir_img = Path('./data_1c_s/imgs/')
+dir_mask = Path('./data_1c_s/masks/')
+dir_checkpoint = Path('./checkpoints/')
 
 
 def train_model(
@@ -37,12 +39,13 @@ def train_model(
         weight_decay: float = 1e-8,
         momentum: float = 0.999,
         gradient_clipping: float = 1.0,
+        mask_threshold: float = 0.5
 ):
     # 1. Create dataset
-    try:
-        dataset = CarvanaDataset(dir_img, dir_mask, img_scale)
-    except (AssertionError, RuntimeError, IndexError):
-        dataset = BasicDataset(dir_img, dir_mask, img_scale)
+    # try:
+    #     dataset = CarvanaDataset(dir_img, dir_mask, img_scale)
+    # except (AssertionError, RuntimeError, IndexError):
+    dataset = BasicDataset(dir_img, dir_mask, img_scale)
 
     # 2. Split into train / validation partitions
     n_val = int(len(dataset) * val_percent)
@@ -71,6 +74,8 @@ def train_model(
         Device:          {device.type}
         Images scaling:  {img_scale}
         Mixed Precision: {amp}
+        Mask Threshold:  {mask_threshold}
+        Classes:         {model.n_classes}
     ''')
 
     # 4. Set up the optimizer, the loss, the learning rate scheduler and the loss scaling for AMP
@@ -81,6 +86,13 @@ def train_model(
     grad_scaler = torch.cuda.amp.GradScaler(enabled=amp)
     criterion = nn.CrossEntropyLoss() if model.n_classes > 1 else nn.BCEWithLogitsLoss()
     global_step = 0
+
+    train_epoch_list = []
+    loss_train_criterion_list = []
+    loss_train_dice_list = []
+    val_epoch_list = []
+    loss_val_criterion_list = []
+    loss_val_dice_list = []
 
     # 5. Begin training
     for epoch in range(1, epochs + 1):
@@ -101,15 +113,17 @@ def train_model(
                 with torch.autocast(device.type if device.type != 'mps' else 'cpu', enabled=amp):
                     masks_pred = model(images)
                     if model.n_classes == 1:
-                        loss = criterion(masks_pred.squeeze(1), true_masks.float())
-                        loss += dice_loss(F.sigmoid(masks_pred.squeeze(1)), true_masks.float(), multiclass=False)
+                        loss_criterion = criterion(masks_pred.squeeze(1), true_masks.float())
+                        loss_dice = dice_loss(F.sigmoid(masks_pred.squeeze(1)), true_masks.float(), multiclass=False)
                     else:
-                        loss = criterion(masks_pred, true_masks)
-                        loss += dice_loss(
+                        loss_criterion = criterion(masks_pred, true_masks)
+                        loss_dice = dice_loss(
                             F.softmax(masks_pred, dim=1).float(),
                             F.one_hot(true_masks, model.n_classes).permute(0, 3, 1, 2).float(),
                             multiclass=True
                         )
+
+                    loss = loss_criterion + loss_dice
 
                 optimizer.zero_grad(set_to_none=True)
                 grad_scaler.scale(loss).backward()
@@ -121,6 +135,10 @@ def train_model(
                 pbar.update(images.shape[0])
                 global_step += 1
                 epoch_loss += loss.item()
+
+                train_epoch_list.append(epoch)
+                loss_train_criterion_list.append(loss_criterion.item())
+                loss_train_dice_list.append(loss_dice.item())
                 #experiment.log({
                 #    'train loss': loss.item(),
                 #    'step': global_step,
@@ -140,10 +158,15 @@ def train_model(
                         #    if not (torch.isinf(value.grad) | torch.isnan(value.grad)).any():
                         #        histograms['Gradients/' + tag] = wandb.Histogram(value.grad.data.cpu())
 
-                        val_score = evaluate(model, val_loader, device, amp)
+                        val_score, val_loss_criterion, val_loss_dice = evaluate(model, val_loader, device, amp, mask_threshold)
                         scheduler.step(val_score)
 
                         logging.info('Validation Dice score: {}'.format(val_score))
+                        val_epoch_list += [epoch]*len(val_loader)
+                        loss_val_criterion_list += val_loss_criterion
+                        loss_val_dice_list += val_loss_dice
+                        # loss_val_criterion_list.append(val_loss_criterion.item())
+                        # loss_val_dice_list.append(val_loss_dice.item())
                         #try:
                         #    experiment.log({
                         #        'learning rate': optimizer.param_groups[0]['lr'],
@@ -167,6 +190,8 @@ def train_model(
             torch.save(state_dict, str(dir_checkpoint / 'checkpoint_epoch{}.pth'.format(epoch)))
             logging.info(f'Checkpoint {epoch} saved!')
 
+    return train_epoch_list, loss_train_criterion_list, loss_train_dice_list,\
+        val_epoch_list, loss_val_criterion_list, loss_val_dice_list
 
 def get_args():
     parser = argparse.ArgumentParser(description='Train the UNet on images and target masks')
@@ -180,7 +205,9 @@ def get_args():
                         help='Percent of the data that is used as validation (0-100)')
     parser.add_argument('--amp', action='store_true', default=False, help='Use mixed precision')
     parser.add_argument('--bilinear', action='store_true', default=False, help='Use bilinear upsampling')
-    parser.add_argument('--classes', '-c', type=int, default=2, help='Number of classes')
+    parser.add_argument('--classes', '-c', type=int, default=1, help='Number of classes')
+    parser.add_argument('--mask-threshold', '-t', dest='mask_threshold', type=float, default=0.5,
+                        help='Minimum probability value to consider a mask pixel white')
 
     return parser.parse_args()
 
@@ -211,6 +238,8 @@ if __name__ == '__main__':
 
     model.to(device=device)
     try:
+        train_epoch_list, train_loss_criterion_list, train_loss_dice_list,\
+            val_epoch_list, val_loss_criterion_list, val_loss_dice_list = \
         train_model(
             model=model,
             epochs=args.epochs,
@@ -219,7 +248,8 @@ if __name__ == '__main__':
             device=device,
             img_scale=args.scale,
             val_percent=args.val / 100,
-            amp=args.amp
+            amp=args.amp,
+            mask_threshold=args.mask_threshold
         )
     except torch.cuda.OutOfMemoryError:
         logging.error('Detected OutOfMemoryError! '
@@ -227,6 +257,8 @@ if __name__ == '__main__':
                       'Consider enabling AMP (--amp) for fast and memory efficient training')
         torch.cuda.empty_cache()
         model.use_checkpointing()
+        train_epoch_list, train_loss_criterion_list, train_loss_dice_list,\
+            val_epoch_list, val_loss_criterion_list, val_loss_dice_list = \
         train_model(
             model=model,
             epochs=args.epochs,
@@ -235,5 +267,15 @@ if __name__ == '__main__':
             device=device,
             img_scale=args.scale,
             val_percent=args.val / 100,
-            amp=args.amp
+            amp=args.amp,
+            mask_threshold=args.mask_threshold
         )
+
+    header_train = 'Epoch, Criterion Loss, Dice Loss'
+    header_val = 'Epoch, Criterion Loss, Dice Loss'
+    data_train = np.column_stack((train_epoch_list, train_loss_criterion_list, train_loss_dice_list))
+    data_val = np.column_stack((val_epoch_list, val_loss_criterion_list, val_loss_dice_list))
+    np.savetxt('data_train.csv', data_train, delimiter=',', header=header_train, comments='')
+    np.savetxt('data_val.csv', data_val, delimiter=',', header=header_val, comments='')
+
+    print('Successfully trained U-Net model!')

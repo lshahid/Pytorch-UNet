@@ -1,15 +1,20 @@
 import torch
 import torch.nn.functional as F
 from tqdm import tqdm
+import torch.nn as nn
 
 from dice_score import multiclass_dice_coeff, dice_coeff
 
 
 @torch.inference_mode()
-def evaluate(net, dataloader, device, amp):
+def evaluate(net, dataloader, device, amp, mask_threshold):
     net.eval()
     num_val_batches = len(dataloader)
     dice_score = 0
+    criterion = nn.BCEWithLogitsLoss()
+    criterion_loss = 0
+    criterion_loss_list = []
+    dice_loss_list = []
 
     # iterate over the validation set
     with torch.autocast(device.type if device.type != 'mps' else 'cpu', enabled=amp):
@@ -25,9 +30,13 @@ def evaluate(net, dataloader, device, amp):
 
             if net.n_classes == 1:
                 assert mask_true.min() >= 0 and mask_true.max() <= 1, 'True mask indices should be in [0, 1]'
-                mask_pred = (F.sigmoid(mask_pred) > 0.5).float()
+                mask_pred = (F.sigmoid(mask_pred) > mask_threshold).float()
                 # compute the Dice score
                 dice_score += dice_coeff(mask_pred.squeeze(1), mask_true, reduce_batch_first=False)
+                dice_loss_list.append(1 - (dice_coeff(mask_pred.squeeze(1), mask_true, reduce_batch_first=False)).item())
+                # compute the criterion loss
+                criterion_loss = criterion(mask_pred.squeeze(1), mask_true.float())
+                criterion_loss_list.append(criterion_loss.item())
             else:
                 assert mask_true.min() >= 0 and mask_true.max() < net.n_classes, 'True mask indices should be in [0, n_classes['
                 # convert to one-hot format
@@ -37,4 +46,7 @@ def evaluate(net, dataloader, device, amp):
                 dice_score += multiclass_dice_coeff(mask_pred[:, 1:], mask_true[:, 1:], reduce_batch_first=False)
 
     net.train()
-    return dice_score / max(num_val_batches, 1)
+    # loss_dice = 1 - (dice_score / max(num_val_batches, 1))
+    # loss_criterion = criterion_loss / max(num_val_batches, 1)
+    dice_score = dice_score / max(num_val_batches, 1)
+    return dice_score, criterion_loss_list, dice_loss_list

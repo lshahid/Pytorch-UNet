@@ -2,9 +2,9 @@ import logging
 import numpy as np
 import torch
 from PIL import Image
-from functools import lru_cache
+# from functools import lru_cache
 from functools import partial
-from itertools import repeat
+# from itertools import repeat
 from multiprocessing import Pool
 from os import listdir
 from os.path import splitext, isfile, join
@@ -43,7 +43,7 @@ class BasicDataset(Dataset):
         self.scale = scale
         self.mask_suffix = mask_suffix
 
-        self.ids = [splitext(file)[0] for file in listdir(images_dir) if isfile(join(images_dir, file)) and not file.startswith('.')]
+        self.ids = [splitext(file)[0] for file in sorted(listdir(images_dir)) if isfile(join(images_dir, file)) and not file.startswith('.')]
         if not self.ids:
             raise RuntimeError(f'No input file found in {images_dir}, make sure you put your images there')
 
@@ -108,7 +108,7 @@ class BasicDataset(Dataset):
 
         # Set mask value to 0 outside bladder, 1 inside bladder
         if np.count_nonzero(mask) != 0:
-            mask = np.where(mask==0,1,0)
+            mask = np.where(mask==0, 1, 0)
 
         return {
             'name': name,
@@ -117,6 +117,6 @@ class BasicDataset(Dataset):
         }
 
 
-class CarvanaDataset(BasicDataset):
-    def __init__(self, images_dir, mask_dir, scale=1):
-        super().__init__(images_dir, mask_dir, scale, mask_suffix='_mask')
+# class CarvanaDataset(BasicDataset):
+#     def __init__(self, images_dir, mask_dir, scale=1):
+#         super().__init__(images_dir, mask_dir, scale, mask_suffix='_mask')
