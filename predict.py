@@ -47,7 +47,7 @@ def get_args():
     parser.add_argument('--scale', '-s', type=float, default=1.0,
                         help='Scale factor for the input images')
     parser.add_argument('--bilinear', action='store_true', default=False, help='Use bilinear upsampling')
-    parser.add_argument('--classes', '-c', type=int, default=2, help='Number of classes')
+    parser.add_argument('--classes', '-c', type=int, default=1, help='Number of classes')
     
     return parser.parse_args()
 
@@ -119,6 +119,8 @@ if __name__ == '__main__':
             result = mask_to_image(mask, mask_values)
             result.save(out_filename)
             logging.info(f'Mask saved to {out_filename}')
+
+    print(f"Successfully predicted {len(in_files)} masks!")
 
         # if args.viz:
         #     logging.info(f'Visualizing results for image {filename}, close to continue...')

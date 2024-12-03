@@ -284,4 +284,4 @@ if __name__ == '__main__':
     np.savetxt('data_train.csv', data_train, delimiter=',', header=header_train, comments='')
     np.savetxt('data_val.csv', data_val, delimiter=',', header=header_val, comments='')
 
-    print('Successfully trained U-Net model!')
+    print("Successfully trained U-Net model!")
