@@ -15,6 +15,7 @@ def evaluate(net, dataloader, device, amp, mask_threshold):
     criterion_loss = 0
     criterion_loss_list = []
     dice_loss_list = []
+    total_loss_list = []
 
     # iterate over the validation set
     with torch.autocast(device.type if device.type != 'mps' else 'cpu', enabled=amp):
@@ -33,10 +34,12 @@ def evaluate(net, dataloader, device, amp, mask_threshold):
                 mask_pred = (F.sigmoid(mask_pred) > mask_threshold).float()
                 # compute the Dice score
                 dice_score += dice_coeff(mask_pred.squeeze(1), mask_true, reduce_batch_first=False)
-                dice_loss_list.append(1 - (dice_coeff(mask_pred.squeeze(1), mask_true, reduce_batch_first=False)).item())
+                dice_loss = 1 - (dice_coeff(mask_pred.squeeze(1), mask_true, reduce_batch_first=False)).item()
+                dice_loss_list.append(dice_loss)
                 # compute the criterion loss
                 criterion_loss = criterion(mask_pred.squeeze(1), mask_true.float())
                 criterion_loss_list.append(criterion_loss.item())
+                total_loss_list.append(dice_loss + criterion_loss.item())
             else:
                 assert mask_true.min() >= 0 and mask_true.max() < net.n_classes, 'True mask indices should be in [0, n_classes['
                 # convert to one-hot format
@@ -49,4 +52,4 @@ def evaluate(net, dataloader, device, amp, mask_threshold):
     # loss_dice = 1 - (dice_score / max(num_val_batches, 1))
     # loss_criterion = criterion_loss / max(num_val_batches, 1)
     dice_score = dice_score / max(num_val_batches, 1)
-    return dice_score, criterion_loss_list, dice_loss_list
+    return dice_score, criterion_loss_list, dice_loss_list, total_loss_list
