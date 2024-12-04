@@ -11,7 +11,7 @@ tar xzf pred_imgs.tar.gz
 mkdir pred_masks
 
 # Segment images
-time python3 predict.py -m checkpoint_epochXX.pth -i pred_imgs/ -o pred_masks/ -t 0.5 -c 1
+time python3 predict.py -m checkpoint_epochXX.pth -i pred_imgs/ -o pred_masks/ -t 0.5 -c 1 -s 1
 
 # Tar predicted masks
 tar czf pred_masks.tar.gz pred_masks/

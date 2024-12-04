@@ -14,7 +14,7 @@ executable = train.sh
 arguments = $(Process)
 
 # Transfer data to the compute node
-transfer_input_files = data_1c_s.tar.gz, unet.py, train.py, dice_score.py, data_loading.py, evaluate.py
+transfer_input_files = data.tar.gz, unet.py, train.py, dice_score.py, data_loading.py, evaluate.py
 
 # Transfer checkpoints back to submit node
 transfer_output_files = checkpoints.tar.gz, data_train.csv, data_val.csv

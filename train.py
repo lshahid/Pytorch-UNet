@@ -21,8 +21,8 @@ from unet import UNet
 from data_loading import BasicDataset
 from dice_score import dice_loss
 
-dir_img = Path('./data_1c_s/imgs/')
-dir_mask = Path('./data_1c_s/masks/')
+dir_img = Path('./data/imgs/')
+dir_mask = Path('./data/masks/')
 dir_checkpoint = Path('./checkpoints/')
 
 
