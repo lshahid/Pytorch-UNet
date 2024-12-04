@@ -66,4 +66,9 @@ if __name__ == '__main__':
             np.save(diff_mask_name, diff_arr)
 
     dice_scores = list(dice_dict.values())
-    print(f"Mean: {statistics.mean(dice_scores)}, Min: {np.min(dice_scores)}, 1st quartile: {statistics.quantiles(dice_scores, n=4)[0].item()}, Median: {statistics.quantiles(dice_scores, n=4)[1].item()}, 3rd quartile: {statistics.quantiles(dice_scores, n=4)[2].item()}, Max:{np.max(dice_scores)}")
+    print(f"Mean: {statistics.mean(dice_scores)}\n"
+          f"Min: {np.min(dice_scores)}\n"
+          f"1st quartile: {statistics.quantiles(dice_scores, n=4)[0].item()}\n"
+          f"Median: {statistics.quantiles(dice_scores, n=4)[1].item()}\n"
+          f"3rd quartile: {statistics.quantiles(dice_scores, n=4)[2].item()}\n"
+          f"Max: {np.max(dice_scores)}")
