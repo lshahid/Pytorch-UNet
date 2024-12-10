@@ -16,7 +16,7 @@ def jaccard_index(input: Tensor, target: Tensor, reduce_batch_first: bool = Fals
     return jaccard.mean()
 
 
-def jaccard_loss(input: Tensor, target: Tensor, multiclass: bool = False):
+def jaccard_loss(input: Tensor, target: Tensor):
     # Jaccard loss (objective to minimize) between 0 and 1
     fn = jaccard_index
     return 1 - fn(input, target, reduce_batch_first=True)
