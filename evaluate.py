@@ -42,7 +42,7 @@ def evaluate(net, dataloader, device, amp, mask_threshold):
                 criterion_loss = criterion(mask_pred.squeeze(1), mask_true.float())
                 criterion_loss_list.append(criterion_loss.item())
                 # compute the Jaccard loss
-                jaccard_l = jaccard_loss(mask_pred.squeeze(1), mask_true, reduce_batch_first=False).item()
+                jaccard_l = jaccard_loss(mask_pred.squeeze(1), mask_true).item()
                 jaccard_loss_list.append(jaccard_l)
                 total_loss_list.append(dice_loss + criterion_loss.item() + jaccard_l)
             else:
