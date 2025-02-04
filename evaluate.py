@@ -1,10 +1,11 @@
 import torch
 import torch.nn.functional as F
+from torchvision.ops import sigmoid_focal_loss
 from tqdm import tqdm
 import torch.nn as nn
 
 from dice_score import multiclass_dice_coeff, dice_coeff
-from jaccard_index import jaccard_loss
+#from jaccard_index import jaccard_loss
 
 
 @torch.inference_mode()
@@ -16,7 +17,7 @@ def evaluate(net, dataloader, device, amp, mask_threshold):
     criterion_loss = 0
     criterion_loss_list = []
     dice_loss_list = []
-    jaccard_loss_list = []
+    focal_loss_list = []
     total_loss_list = []
 
     # iterate over the validation set
@@ -34,17 +35,22 @@ def evaluate(net, dataloader, device, amp, mask_threshold):
             if net.n_classes == 1:
                 assert mask_true.min() >= 0 and mask_true.max() <= 1, 'True mask indices should be in [0, 1]'
                 mask_pred = (F.sigmoid(mask_pred) > mask_threshold).float()
-                # compute the Dice score
+
+                # Compute the Dice loss
                 dice_score += dice_coeff(mask_pred.squeeze(1), mask_true, reduce_batch_first=False)
                 dice_loss = 1 - (dice_coeff(mask_pred.squeeze(1), mask_true, reduce_batch_first=False)).item()
                 dice_loss_list.append(dice_loss)
-                # compute the criterion loss
+
+                # Compute the Criterion loss
                 criterion_loss = criterion(mask_pred.squeeze(1), mask_true.float())
                 criterion_loss_list.append(criterion_loss.item())
-                # compute the Jaccard loss
-                jaccard_l = jaccard_loss(mask_pred.squeeze(1), mask_true).item()
-                jaccard_loss_list.append(jaccard_l)
-                total_loss_list.append(dice_loss + criterion_loss.item() + jaccard_l)
+
+                # Compute the Focal loss
+                focal_l = sigmoid_focal_loss(mask_pred.squeeze(1), mask_true.float(), reduction='mean').item()
+                focal_loss_list.append(focal_l)
+
+                # Compute the total loss
+                total_loss_list.append(dice_loss + criterion_loss.item() + focal_l)
             else:
                 assert mask_true.min() >= 0 and mask_true.max() < net.n_classes, 'True mask indices should be in [0, n_classes['
                 # convert to one-hot format
@@ -57,4 +63,4 @@ def evaluate(net, dataloader, device, amp, mask_threshold):
     # loss_dice = 1 - (dice_score / max(num_val_batches, 1))
     # loss_criterion = criterion_loss / max(num_val_batches, 1)
     dice_score = dice_score / max(num_val_batches, 1)
-    return dice_score, criterion_loss_list, dice_loss_list, jaccard_loss_list, total_loss_list
+    return dice_score, criterion_loss_list, dice_loss_list, focal_loss_list, total_loss_list
