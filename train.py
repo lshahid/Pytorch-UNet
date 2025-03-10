@@ -6,7 +6,7 @@ import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision.ops import sigmoid_focal_loss
+# from torchvision.ops import sigmoid_focal_loss
 # import torchvision.transforms as transforms
 # import torchvision.transforms.functional as TF
 from pathlib import Path
@@ -92,12 +92,12 @@ def train_model(
     train_epoch_list = []
     loss_train_criterion_list = []
     loss_train_dice_list = []
-    loss_train_focal_list = []
+    # loss_train_focal_list = []
     loss_train_total_list = []
     val_epoch_list = []
     loss_val_criterion_list = []
     loss_val_dice_list = []
-    loss_val_focal_list = []
+    # loss_val_focal_list = []
     loss_val_total_list = []
 
     # 5. Begin training
@@ -121,7 +121,7 @@ def train_model(
                     if model.n_classes == 1:
                         loss_criterion = criterion(masks_pred.squeeze(1), true_masks.float())
                         loss_dice = dice_loss(F.sigmoid(masks_pred.squeeze(1)), true_masks.float(), multiclass=False)
-                        loss_focal = sigmoid_focal_loss(F.sigmoid(masks_pred.squeeze(1)), true_masks.float(), reduction='mean')
+                        # loss_focal = sigmoid_focal_loss(F.sigmoid(masks_pred.squeeze(1)), true_masks.float(), reduction='mean')
                     else:
                         loss_criterion = criterion(masks_pred, true_masks)
                         loss_dice = dice_loss(
@@ -130,7 +130,7 @@ def train_model(
                             multiclass=True
                         )
 
-                    loss = loss_criterion + loss_dice + loss_focal
+                    loss = loss_criterion + loss_dice
 
                 optimizer.zero_grad(set_to_none=True)
                 grad_scaler.scale(loss).backward()
@@ -146,7 +146,7 @@ def train_model(
                 train_epoch_list.append(epoch)
                 loss_train_criterion_list.append(loss_criterion.item())
                 loss_train_dice_list.append(loss_dice.item())
-                loss_train_focal_list.append(loss_focal.item())
+                # loss_train_focal_list.append(loss_focal.item())
                 loss_train_total_list.append(loss.item())
                 #experiment.log({
                 #    'train loss': loss.item(),
@@ -167,7 +167,7 @@ def train_model(
                         #    if not (torch.isinf(value.grad) | torch.isnan(value.grad)).any():
                         #        histograms['Gradients/' + tag] = wandb.Histogram(value.grad.data.cpu())
 
-                        val_score, val_loss_criterion, val_loss_dice, val_loss_focal, val_loss_total = \
+                        val_score, val_loss_criterion, val_loss_dice, val_loss_total = \
                             evaluate(model, val_loader, device, amp, mask_threshold)
                         scheduler.step(val_score)
 
@@ -175,7 +175,7 @@ def train_model(
                         val_epoch_list += [epoch]*len(val_loader)
                         loss_val_criterion_list += val_loss_criterion
                         loss_val_dice_list += val_loss_dice
-                        loss_val_focal_list += val_loss_focal
+                        # loss_val_focal_list += val_loss_focal
                         loss_val_total_list += val_loss_total
 
                         # loss_val_criterion_list.append(val_loss_criterion.item())
@@ -203,8 +203,8 @@ def train_model(
             torch.save(state_dict, str(dir_checkpoint / 'checkpoint_epoch{}.pth'.format(epoch)))
             logging.info(f'Checkpoint {epoch} saved!')
 
-    return train_epoch_list, loss_train_criterion_list, loss_train_dice_list, loss_train_focal_list, loss_train_total_list,\
-        val_epoch_list, loss_val_criterion_list, loss_val_dice_list, loss_val_focal_list, loss_val_total_list
+    return train_epoch_list, loss_train_criterion_list, loss_train_dice_list, loss_train_total_list,\
+        val_epoch_list, loss_val_criterion_list, loss_val_dice_list, loss_val_total_list
 
 def get_args():
     parser = argparse.ArgumentParser(description='Train the UNet on images and target masks')
@@ -251,8 +251,8 @@ if __name__ == '__main__':
 
     model.to(device=device)
     try:
-        train_epoch_list, train_loss_criterion_list, train_loss_dice_list, train_loss_focal_list, train_loss_total_list,\
-            val_epoch_list, val_loss_criterion_list, val_loss_dice_list, val_loss_focal_list, val_loss_total_list = \
+        train_epoch_list, train_loss_criterion_list, train_loss_dice_list, train_loss_total_list,\
+            val_epoch_list, val_loss_criterion_list, val_loss_dice_list, val_loss_total_list = \
         train_model(
             model=model,
             epochs=args.epochs,
@@ -270,8 +270,8 @@ if __name__ == '__main__':
                       'Consider enabling AMP (--amp) for fast and memory efficient training')
         torch.cuda.empty_cache()
         model.use_checkpointing()
-        train_epoch_list, train_loss_criterion_list, train_loss_dice_list, train_loss_focal_list, train_loss_total_list,\
-            val_epoch_list, val_loss_criterion_list, val_loss_dice_list, val_loss_focal_list, val_loss_total_list = \
+        train_epoch_list, train_loss_criterion_list, train_loss_dice_list, train_loss_total_list,\
+            val_epoch_list, val_loss_criterion_list, val_loss_dice_list, val_loss_total_list = \
         train_model(
             model=model,
             epochs=args.epochs,
@@ -284,10 +284,10 @@ if __name__ == '__main__':
             mask_threshold=args.mask_threshold
         )
 
-    header_train = 'Epoch,Criterion Loss,Dice Loss,Focal Loss,Total Loss'
-    header_val = 'Epoch,Criterion Loss,Dice Loss,Focal Loss,Total Loss'
-    data_train = np.column_stack((train_epoch_list, train_loss_criterion_list, train_loss_dice_list, train_loss_focal_list, train_loss_total_list))
-    data_val = np.column_stack((val_epoch_list, val_loss_criterion_list, val_loss_dice_list, val_loss_focal_list, val_loss_total_list))
+    header_train = 'Epoch,Criterion Loss,Dice Loss,Total Loss'
+    header_val = 'Epoch,Criterion Loss,Dice Loss,Total Loss'
+    data_train = np.column_stack((train_epoch_list, train_loss_criterion_list, train_loss_dice_list, train_loss_total_list))
+    data_val = np.column_stack((val_epoch_list, val_loss_criterion_list, val_loss_dice_list, val_loss_total_list))
     np.savetxt('data_train.csv', data_train, delimiter=',', header=header_train, comments='')
     np.savetxt('data_val.csv', data_val, delimiter=',', header=header_val, comments='')
 

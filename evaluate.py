@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from torchvision.ops import sigmoid_focal_loss
+# from torchvision.ops import sigmoid_focal_loss
 from tqdm import tqdm
 import torch.nn as nn
 
@@ -17,7 +17,7 @@ def evaluate(net, dataloader, device, amp, mask_threshold):
     criterion_loss = 0
     criterion_loss_list = []
     dice_loss_list = []
-    focal_loss_list = []
+    # focal_loss_list = []
     total_loss_list = []
 
     # iterate over the validation set
@@ -45,12 +45,12 @@ def evaluate(net, dataloader, device, amp, mask_threshold):
                 criterion_loss = criterion(mask_pred.squeeze(1), mask_true.float())
                 criterion_loss_list.append(criterion_loss.item())
 
-                # Compute the Focal loss
-                focal_l = sigmoid_focal_loss(mask_pred.squeeze(1), mask_true.float(), reduction='mean').item()
-                focal_loss_list.append(focal_l)
+                # # Compute the Focal loss
+                # focal_l = sigmoid_focal_loss(mask_pred.squeeze(1), mask_true.float(), reduction='mean').item()
+                # focal_loss_list.append(focal_l)
 
                 # Compute the total loss
-                total_loss_list.append(dice_loss + criterion_loss.item() + focal_l)
+                total_loss_list.append(dice_loss + criterion_loss.item())
             else:
                 assert mask_true.min() >= 0 and mask_true.max() < net.n_classes, 'True mask indices should be in [0, n_classes['
                 # convert to one-hot format
@@ -63,4 +63,4 @@ def evaluate(net, dataloader, device, amp, mask_threshold):
     # loss_dice = 1 - (dice_score / max(num_val_batches, 1))
     # loss_criterion = criterion_loss / max(num_val_batches, 1)
     dice_score = dice_score / max(num_val_batches, 1)
-    return dice_score, criterion_loss_list, dice_loss_list, focal_loss_list, total_loss_list
+    return dice_score, criterion_loss_list, dice_loss_list, total_loss_list
