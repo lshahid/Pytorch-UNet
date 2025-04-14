@@ -3,6 +3,7 @@ import os
 from PIL import Image
 import numpy as np
 import statistics
+from hausdorff_distance import hausdorff_distance_mask
 
 # Dice score
 def DICE_Coeff(true_mask_arr, pred_mask_arr):
@@ -21,8 +22,8 @@ def DICE_Coeff(true_mask_arr, pred_mask_arr):
 
 def get_args():
     parser = argparse.ArgumentParser(description='Difference between true and predicted masks')
-    parser.add_argument('--true-dir', '-t', metavar='TRUE_DIR', help='True mask directory', required=True)
-    parser.add_argument('--pred-dir', '-p', metavar='PRED_DIR', help='Predicted mask directory', required=True)
+    parser.add_argument('--true-dir', '-i', metavar='TRUE_DIR', help='True mask directory', required=True)
+    parser.add_argument('--pred-dir', '-o', metavar='PRED_DIR', help='Predicted mask directory', required=True)
     parser.add_argument('--no-save', '-n', action='store_true', help='Do not save the difference masks')
     parser.add_argument('--diff-dir', '-d', metavar='DIFF_DIR', help='Difference mask directory')
 
@@ -34,8 +35,8 @@ if __name__ == '__main__':
     true_masks_dir = args.true_dir
     pred_masks_dir = args.pred_dir
     
-
     dice_dict = {}
+    HD_dict = {}
 
     # Iterate over files in true masks directory
     for mask_name in sorted(os.listdir(true_masks_dir)):
@@ -54,8 +55,12 @@ if __name__ == '__main__':
         DICE_Score = DICE_Coeff(true_arr, pred_arr)
         Name = mask_name.split('.')[0]
         dice_dict[Name] = DICE_Score
-        # pdb.set_trace()
-
+        
+        #Calculate HD Distance
+        if (len(np.unique(true_arr))>1 and len(np.unique(pred_arr))>1): 
+            HD_Distance = hausdorff_distance_mask(true_arr,pred_arr,'standard')
+            HD_dict[Name] = HD_Distance
+            
         # Difference masks
         if not args.no_save:
             diff_arr = true_arr - pred_arr
@@ -66,9 +71,21 @@ if __name__ == '__main__':
             np.save(diff_mask_name, diff_arr)
 
     dice_scores = list(dice_dict.values())
-    print(f"Mean: {statistics.mean(dice_scores)}\n"
+    HD_distances = list(HD_dict.values())
+
+    # Print Dice score and Hausdorff distance
+    print('2D DICE Score Statistics\n'
+          f"Mean: {statistics.mean(dice_scores)}\n"
           f"Min: {np.min(dice_scores)}\n"
           f"1st quartile: {statistics.quantiles(dice_scores, n=4)[0].item()}\n"
           f"Median: {statistics.quantiles(dice_scores, n=4)[1].item()}\n"
           f"3rd quartile: {statistics.quantiles(dice_scores, n=4)[2].item()}\n"
           f"Max: {np.max(dice_scores)}")
+    
+    print('\n2D Hausdorff Distance Statistics\n'
+          f"Mean: {statistics.mean(HD_distances)}\n"
+          f"Min: {np.min(HD_distances)}\n"
+          f"1st quartile: {statistics.quantiles(HD_distances, n=4)[0].item()}\n"
+          f"Median: {statistics.quantiles(HD_distances, n=4)[1].item()}\n"
+          f"3rd quartile: {statistics.quantiles(HD_distances, n=4)[2].item()}\n"
+          f"Max: {np.max(HD_distances)}")

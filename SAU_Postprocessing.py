@@ -1,3 +1,6 @@
+"""
+This script segements all images in a directory.
+"""
 import argparse
 import logging
 import os
@@ -13,8 +16,10 @@ def get_args():
     parser = argparse.ArgumentParser(description='SAU Implementation of Predicted Images')
     #parser.add_argument('--model', '-m', default='MODEL.pth', metavar='FILE',
     #                    help='Specify the file in which the model is stored')
-    parser.add_argument('--input-dir', '-id', metavar='INPUT_DIR', help='Input image directory', required=True)
-    parser.add_argument('--output-dir', '-od', metavar='OUTPUT_DIR', help='Output image directory', required=True)
+    parser.add_argument('--input-dir', '-i', metavar='INPUT_DIR', help='Input image directory', required=True)
+    parser.add_argument('--output-dir', '-o', metavar='OUTPUT_DIR', help='Output image directory', required=True)
+    parser.add_argument('--n_timephases', '-t', type=int, help='Number of time phases', required=True)
+    parser.add_argument('--n_slices', '-s',  type=int, help='Number of slices', required=True)
     #parser.add_argument('--viz', '-v', action='store_true',
     #                   help='Visualize the images as they are processed')
     parser.add_argument('--no-save', '-n', action='store_true', help='Do not save the output masks')
@@ -67,8 +72,8 @@ if __name__ == '__main__':
     out_files = [os.path.join(output_dir, os.path.splitext(os.path.basename(f))[0] + '.gif') for f in in_files]
 
     # SAU-Net
-    n_timephases = 31
-    n_slices = 140
+    n_timephases = args.n_timephases
+    n_slices = args.n_slices
 
     for i, filename in enumerate(in_files):
         logging.info(f'Predicting image {filename} ...')
@@ -121,13 +126,13 @@ if __name__ == '__main__':
 
             # Add
             mask_add = mask_i_s + mask_i_im1 + mask_i_ip1
+
         # Sigmoid
         mask_sigmoid = 1/(1 + np.exp(-mask_add))
-        pdb.set_trace()
+        dynamic_thresh = np.unique(mask_sigmoid)[0]
 
         if not args.no_save:
             out_filename = out_files[i]
-            result = np.where(mask_sigmoid>0.51,1,0)
+            result = np.where(mask_sigmoid > dynamic_thresh, 1, 0)
             matplotlib.image.imsave(out_filename,result,cmap='gray')
             logging.info(f'Mask saved to {out_filename}')
-            
