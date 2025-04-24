@@ -44,12 +44,12 @@ if __name__ == '__main__':
     val_loss_dice_min_list = []
     val_loss_dice_mean_list = []
 
-    train_loss_focal_max_list = []
-    train_loss_focal_min_list = []
-    train_loss_focal_mean_list = []
-    val_loss_focal_max_list = []
-    val_loss_focal_min_list = []
-    val_loss_focal_mean_list = []
+    # train_loss_focal_max_list = []
+    # train_loss_focal_min_list = []
+    # train_loss_focal_mean_list = []
+    # val_loss_focal_max_list = []
+    # val_loss_focal_min_list = []
+    # val_loss_focal_mean_list = []
 
     train_loss_total_max_list = []
     train_loss_total_min_list = []
@@ -76,12 +76,12 @@ if __name__ == '__main__':
         val_loss_dice_min_value = val_epoch_data['Dice Loss'].min()
         val_loss_dice_mean_value = val_epoch_data['Dice Loss'].mean()
 
-        train_loss_focal_max_value = train_epoch_data['Focal Loss'].max()
-        train_loss_focal_min_value = train_epoch_data['Focal Loss'].min()
-        train_loss_focal_mean_value = train_epoch_data['Focal Loss'].mean()
-        val_loss_focal_max_value = val_epoch_data['Focal Loss'].max()
-        val_loss_focal_min_value = val_epoch_data['Focal Loss'].min()
-        val_loss_focal_mean_value = val_epoch_data['Focal Loss'].mean()
+        # train_loss_focal_max_value = train_epoch_data['Focal Loss'].max()
+        # train_loss_focal_min_value = train_epoch_data['Focal Loss'].min()
+        # train_loss_focal_mean_value = train_epoch_data['Focal Loss'].mean()
+        # val_loss_focal_max_value = val_epoch_data['Focal Loss'].max()
+        # val_loss_focal_min_value = val_epoch_data['Focal Loss'].min()
+        # val_loss_focal_mean_value = val_epoch_data['Focal Loss'].mean()
 
         train_loss_total_max_value = train_epoch_data['Total Loss'].max()
         train_loss_total_min_value = train_epoch_data['Total Loss'].min()
@@ -106,12 +106,12 @@ if __name__ == '__main__':
         val_loss_dice_min_list.append(val_loss_dice_min_value)
         val_loss_dice_mean_list.append(val_loss_dice_mean_value)
 
-        train_loss_focal_max_list.append(train_loss_focal_max_value)
-        train_loss_focal_min_list.append(train_loss_focal_min_value)
-        train_loss_focal_mean_list.append(train_loss_focal_mean_value)
-        val_loss_focal_max_list.append(val_loss_focal_max_value)
-        val_loss_focal_min_list.append(val_loss_focal_min_value)
-        val_loss_focal_mean_list.append(val_loss_focal_mean_value)
+        # train_loss_focal_max_list.append(train_loss_focal_max_value)
+        # train_loss_focal_min_list.append(train_loss_focal_min_value)
+        # train_loss_focal_mean_list.append(train_loss_focal_mean_value)
+        # val_loss_focal_max_list.append(val_loss_focal_max_value)
+        # val_loss_focal_min_list.append(val_loss_focal_min_value)
+        # val_loss_focal_mean_list.append(val_loss_focal_mean_value)
 
         train_loss_total_max_list.append(train_loss_total_max_value)
         train_loss_total_min_list.append(train_loss_total_min_value)
@@ -137,12 +137,12 @@ if __name__ == '__main__':
     val_loss_dice_min_arr = np.array(val_loss_dice_min_list)
     val_loss_dice_mean_arr = np.array(val_loss_dice_mean_list)
 
-    train_loss_focal_max_arr = np.array(train_loss_focal_max_list)
-    train_loss_focal_min_arr = np.array(train_loss_focal_min_list)
-    train_loss_focal_mean_arr = np.array(train_loss_focal_mean_list)
-    val_loss_focal_max_arr = np.array(val_loss_focal_max_list)
-    val_loss_focal_min_arr = np.array(val_loss_focal_min_list)
-    val_loss_focal_mean_arr = np.array(val_loss_focal_mean_list)
+    # train_loss_focal_max_arr = np.array(train_loss_focal_max_list)
+    # train_loss_focal_min_arr = np.array(train_loss_focal_min_list)
+    # train_loss_focal_mean_arr = np.array(train_loss_focal_mean_list)
+    # val_loss_focal_max_arr = np.array(val_loss_focal_max_list)
+    # val_loss_focal_min_arr = np.array(val_loss_focal_min_list)
+    # val_loss_focal_mean_arr = np.array(val_loss_focal_mean_list)
     
     train_loss_total_max_arr = np.array(train_loss_total_max_list)
     train_loss_total_min_arr = np.array(train_loss_total_min_list)
@@ -152,7 +152,7 @@ if __name__ == '__main__':
     val_loss_total_mean_arr = np.array(val_loss_total_mean_list)
 
     plt.figure(figsize=(12, 14))
-    plt.subplot(4, 2, 1)
+    plt.subplot(3, 2, 1)
     plt.plot(epoch_arr, train_loss_criterion_max_arr, label='Max')
     plt.plot(epoch_arr, train_loss_criterion_mean_arr, label='Mean')
     plt.plot(epoch_arr, train_loss_criterion_min_arr, label='Min')
@@ -163,7 +163,7 @@ if __name__ == '__main__':
     plt.title('Training')
     plt.ylim((0, 3))
 
-    plt.subplot(4, 2, 2)
+    plt.subplot(3, 2, 2)
     plt.plot(epoch_arr, val_loss_criterion_max_arr, label='Max')
     plt.plot(epoch_arr, val_loss_criterion_mean_arr, label='Mean')
     plt.plot(epoch_arr, val_loss_criterion_min_arr, label='Min')
@@ -174,7 +174,7 @@ if __name__ == '__main__':
     plt.title('Validation')
     plt.ylim((0, 3))
 
-    plt.subplot(4, 2, 3)
+    plt.subplot(3, 2, 3)
     plt.plot(epoch_arr, train_loss_dice_max_arr, label='Max')
     plt.plot(epoch_arr, train_loss_dice_mean_arr, label='Mean')
     plt.plot(epoch_arr, train_loss_dice_min_arr, label='Min')
@@ -185,7 +185,7 @@ if __name__ == '__main__':
     # plt.title('Training')
     plt.ylim((0, 3))
 
-    plt.subplot(4, 2, 4)
+    plt.subplot(3, 2, 4)
     plt.plot(epoch_arr, val_loss_dice_max_arr, label='Max')
     plt.plot(epoch_arr, val_loss_dice_mean_arr, label='Mean')
     plt.plot(epoch_arr, val_loss_dice_min_arr, label='Min')
@@ -196,29 +196,29 @@ if __name__ == '__main__':
     # plt.title('Validation')
     plt.ylim((0, 3))
 
-    plt.subplot(4, 2, 5)
-    plt.plot(epoch_arr, train_loss_focal_max_arr, label='Max')
-    plt.plot(epoch_arr, train_loss_focal_mean_arr, label='Mean')
-    plt.plot(epoch_arr, train_loss_focal_min_arr, label='Min')
-    plt.xlabel('Epoch')
-    plt.ylabel('Focal Loss')
-    plt.grid()
-    plt.legend()
-    # plt.title('Training')
-    plt.ylim((0, 3))
+    # plt.subplot(4, 2, 5)
+    # plt.plot(epoch_arr, train_loss_focal_max_arr, label='Max')
+    # plt.plot(epoch_arr, train_loss_focal_mean_arr, label='Mean')
+    # plt.plot(epoch_arr, train_loss_focal_min_arr, label='Min')
+    # plt.xlabel('Epoch')
+    # plt.ylabel('Focal Loss')
+    # plt.grid()
+    # plt.legend()
+    # # plt.title('Training')
+    # plt.ylim((0, 3))
 
-    plt.subplot(4, 2, 6)
-    plt.plot(epoch_arr, val_loss_focal_max_arr, label='Max')
-    plt.plot(epoch_arr, val_loss_focal_mean_arr, label='Mean')
-    plt.plot(epoch_arr, val_loss_focal_min_arr, label='Min')
-    plt.xlabel('Epoch')
-    plt.ylabel('Focal Loss')
-    plt.grid()
-    plt.legend()
-    # plt.title('Validation')
-    plt.ylim((0, 3))
+    # plt.subplot(4, 2, 6)
+    # plt.plot(epoch_arr, val_loss_focal_max_arr, label='Max')
+    # plt.plot(epoch_arr, val_loss_focal_mean_arr, label='Mean')
+    # plt.plot(epoch_arr, val_loss_focal_min_arr, label='Min')
+    # plt.xlabel('Epoch')
+    # plt.ylabel('Focal Loss')
+    # plt.grid()
+    # plt.legend()
+    # # plt.title('Validation')
+    # plt.ylim((0, 3))
 
-    plt.subplot(4, 2, 7)
+    plt.subplot(3, 2, 5)
     plt.plot(epoch_arr, train_loss_total_max_arr, label='Max')
     plt.plot(epoch_arr, train_loss_total_mean_arr, label='Mean')
     plt.plot(epoch_arr, train_loss_total_min_arr, label='Min')
@@ -229,7 +229,7 @@ if __name__ == '__main__':
     # plt.title('Training')
     plt.ylim((0, 3))
 
-    plt.subplot(4, 2, 8)
+    plt.subplot(3, 2, 6)
     plt.plot(epoch_arr, val_loss_total_max_arr, label='Max')
     plt.plot(epoch_arr, val_loss_total_mean_arr, label='Mean')
     plt.plot(epoch_arr, val_loss_total_min_arr, label='Min')
