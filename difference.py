@@ -3,7 +3,7 @@ import os
 from PIL import Image
 import numpy as np
 import statistics
-from hausdorff_distance import hausdorff_distance_mask
+from hausdorff_distance_2D import hausdorff_distance_mask
 
 # Dice score
 def DICE_Coeff(true_mask_arr, pred_mask_arr):
