@@ -71,7 +71,7 @@ def get_args():
     parser.add_argument('--pred-dir', '-i', metavar='PRED_DIR', help='Predicted mask directory', required=True)
     parser.add_argument('--filtered-dir', '-o', metavar='FILTERED_DIR', help='Filtered predicted mask directory', required=True)
     parser.add_argument('--thr', '-t', metavar='THR',  type=int, default=80, dest='thr',
-                        help='Threshold for number of pixels to filter', required=True)
+                        help='Threshold for number of pixels to filter')
 
     return parser.parse_args()
 
@@ -115,23 +115,34 @@ if __name__ == '__main__':
 
         # Data frame for each time phase
         df_time_phase = df[df['Time_Phase']==time_phase]
+
+        N_slices = len(df_time_phase)
+        edge_indices = set(range(5)) | set(range(N_slices-5, N_slices))
         
-        for i in range(len(df_time_phase)):
+        for i in range(N_slices):
+
             # Filter isolated predictions for every slice
             Keep, slice_info = check_isolation(df_time_phase,i,thr)
-            
-            if Keep:
-                # Check if the image has more than one contour (>2 because the background is a contour) 
-                if len(df_time_phase.iloc[i]['Component_Sizes']>2):
-                    #Perform contour filtering
-                    filtered_image =  contour_filtering(pred_masks_dir,df_time_phase,i,thr)
-                    #Save filtered image with contours larger than the threshold
-                    filtered_image.save(os.path.join(filtered_masks_dir,slice_info['Mask_Name']))
-                # Copy predicted mask to filtered mask directory
-                else:
-                    shutil.copy(os.path.join(pred_masks_dir, slice_info['Mask_Name']),
-                            os.path.join(filtered_masks_dir, slice_info['Mask_Name']))   
-            # Create empty mask instead of predicted mask for images that are isolated pixels (prediction errors)
-            else:
+
+            # Empty mask for edge slices
+            if i in edge_indices:
                 new_img = Image.fromarray(np.zeros((256,256)))
                 new_img.save(os.path.join(filtered_masks_dir, slice_info['Mask_Name']))
+
+            # Middle slices
+            else:
+                if Keep:
+                    # Check if the image has more than one contour (>2 because the background is a contour) 
+                    if len(df_time_phase.iloc[i]['Component_Sizes']>2):
+                        #Perform contour filtering
+                        filtered_image =  contour_filtering(pred_masks_dir,df_time_phase,i,thr)
+                        #Save filtered image with contours larger than the threshold
+                        filtered_image.save(os.path.join(filtered_masks_dir,slice_info['Mask_Name']))
+                    # Copy predicted mask to filtered mask directory
+                    else:
+                        shutil.copy(os.path.join(pred_masks_dir, slice_info['Mask_Name']),
+                                os.path.join(filtered_masks_dir, slice_info['Mask_Name']))   
+                # Create empty mask instead of predicted mask for images that are isolated pixels (prediction errors)
+                else:
+                    new_img = Image.fromarray(np.zeros((256,256)))
+                    new_img.save(os.path.join(filtered_masks_dir, slice_info['Mask_Name']))
