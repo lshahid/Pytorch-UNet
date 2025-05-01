@@ -123,16 +123,15 @@ if __name__ == '__main__':
         
         for i in range(N_slices):
 
-            # Filter isolated predictions for every slice
-            Keep, slice_info = check_isolation(df_time_phase,i,thr)
-
             # Empty mask for edge slices
             if i in edge_indices:
+                slice_info = df_time_phase.iloc[i]
                 new_img = Image.fromarray(np.zeros((256,256)))
                 new_img.save(os.path.join(filtered_masks_dir, slice_info['Mask_Name']))
 
             # Middle slices
             else:
+                Keep, slice_info = check_isolation(df_time_phase,i,thr)
                 if Keep:
                     # Check if the image has more than one contour (>2 because the background is a contour) 
                     if len(df_time_phase.iloc[i]['Component_Sizes']>2):
