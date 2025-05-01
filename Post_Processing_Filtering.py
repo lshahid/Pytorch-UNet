@@ -13,31 +13,24 @@ def check_isolation(df_time_phase, i, thr):
 
     # If current slice is smaller than the threshold
     if (num_ones_i <= thr and num_ones_i > 0):
-        # If current slice is on the edges then it should be empty
-        if (i == 0 or i == 1 or i == (len(df_time_phase)-2) or i == (len(df_time_phase)-1)):
-            Keep = False
 
-        # If current slice is not on the edges
-        else:
-            #num_ones_im2 = df_time_phase.iloc[i-2]['Num_Ones']
-            num_ones_im1 = df_time_phase.iloc[i-1]['Num_Ones']
-            num_ones_ip1 = df_time_phase.iloc[i+1]['Num_Ones']
-            #num_ones_ip2 = df_time_phase.iloc[i+2]['Num_Ones']
+        num_ones_im1 = df_time_phase.iloc[i-1]['Num_Ones']
+        num_ones_ip1 = df_time_phase.iloc[i+1]['Num_Ones']
 
-            # If next slice is smaller than the threshold or empty
-            if num_ones_ip1 <= thr:
+        # If next slice is smaller than the threshold or empty
+        if num_ones_ip1 <= thr:
 
-                # And previous slice is smaller than the threshold or empty
-                if num_ones_im1 <= thr:
-                    #Make current slice empty
-                    Keep = False
-                # Keep current slice
-                else:
-                    Keep = True
-            # If next slice is larger than the threshold
+            # And previous slice is smaller than the threshold or empty
+            if num_ones_im1 <= thr:
+                #Make current slice empty
+                Keep = False
+            # Keep current slice
             else:
-                # Keep current slice
                 Keep = True
+        # If next slice is larger than the threshold
+        else:
+            # Keep current slice
+            Keep = True
     #If current slice is larger than the threshold
     else:
         Keep=True
@@ -45,25 +38,34 @@ def check_isolation(df_time_phase, i, thr):
     return Keep, slice_info
 #Function to check isolated pixels (prediction errors) on slices that contain the bladder
 def contour_filtering(pred_mask_dir,df_time_phase, i, thr):
+
     slice_info = df_time_phase.iloc[i]
     pred_mask = Image.open(os.path.join(pred_mask_dir,slice_info['Mask_Name'])).convert('L')
     pred_arr = (np.array(pred_mask)/255).astype(np.uint8)
+
     #Creates a mask that holds information on non-connected countours in one 2D plane
     labeled_mask, _ = ndimage.label(pred_arr)
+
     #Holds information on the amount of pixels of each contour 
     component_sizes = slice_info['Component_Sizes']
+
     #Set the number of pixels in the background to 0 so the background is never chosen
     component_sizes[0] = 0
+
     #Check the number of pixels in each contour and provides a list with the contours with more pixels than the threshold
     largest_labels = (np.argwhere(component_sizes>=thr)).ravel()
+
     #Create a blank array
     filtered_arr = np.zeros_like(pred_arr)
+
     #For each contour larger thant he threshold, add that contour to a blank array
     for label in largest_labels:
         filtered_arr += (labeled_mask == label).astype(np.uint)
+
     #Multiply the array by 255 and return a binary image from the array
     filtered_arr = filtered_arr*255
     filtered_image = Image.fromarray(filtered_arr)
+    
     return filtered_image
 
 def get_args():

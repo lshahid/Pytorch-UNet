@@ -2,8 +2,10 @@ import argparse
 import logging
 import os
 import pdb
+
 import numpy as np
 import matplotlib.image
+
 from PIL import Image
 
 
@@ -11,8 +13,6 @@ def get_args():
     parser = argparse.ArgumentParser(description='SAU Implementation of Predicted Images')
     parser.add_argument('--input-dir', '-i', metavar='INPUT_DIR', help='Input image directory', required=True)
     parser.add_argument('--output-dir', '-o', metavar='OUTPUT_DIR', help='Output image directory', required=True)
-    parser.add_argument('--n_timephases', '-t', type=int, help='Number of time phases', required=True)
-    parser.add_argument('--n_slices', '-s',  type=int, help='Number of slices', required=True)
     parser.add_argument('--no-save', '-n', action='store_true', help='Do not save the output masks')
     
     return parser.parse_args()
@@ -41,10 +41,8 @@ def mask_to_image(mask: np.ndarray, mask_values):
 
     return Image.fromarray(out)
 
-
 if __name__ == '__main__':
     args = get_args()
-    logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
     input_dir = args.input_dir
     output_dir = args.output_dir
@@ -54,13 +52,12 @@ if __name__ == '__main__':
 
     in_files = [os.path.join(input_dir, f) for f in sorted(os.listdir(input_dir)) if os.path.isfile(os.path.join(input_dir, f))]
     out_files = [os.path.join(output_dir, os.path.splitext(os.path.basename(f))[0] + '.gif') for f in in_files]
-
+    
     # SAU-Net
-    n_timephases = args.n_timephases
-    n_slices = args.n_slices
+    n_timephases = int(in_files[-1].split('/')[-1].split('_')[1].split('t')[1])
+    n_slices = int(in_files[-1].split('/')[-1].split('_')[2].split('.')[0].split('z')[1])+1
 
     for i, filename in enumerate(in_files):
-        logging.info(f'Predicting image {filename} ...')
         img_i = Image.open(filename)
         mask_i = np.array(img_i)/255
         mask_i_s = 1/(1 + np.exp(-mask_i))
@@ -119,4 +116,3 @@ if __name__ == '__main__':
             out_filename = out_files[i]
             result = np.where(mask_sigmoid > dynamic_thresh, 1, 0)
             matplotlib.image.imsave(out_filename,result,cmap='gray')
-            logging.info(f'Mask saved to {out_filename}')

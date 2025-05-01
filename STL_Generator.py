@@ -63,8 +63,8 @@ if __name__ == '__main__':
             'Slice': Slice_List}
     df = pd.DataFrame(data)
 
-    for time_phase in range(1,max(df['Time_Phase'])+1):
-
+    for time_phase in pd.unique(df['Time_Phase']):
+        
         df_Time_Phase = df[df['Time_Phase']==time_phase]
         Subject_Name = df_Time_Phase.iloc[0]['Mask_Name'].split('_')[0]
         Phase_Number = "t{:03d}".format(time_phase)
