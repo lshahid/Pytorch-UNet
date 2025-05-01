@@ -1,26 +1,3 @@
-# #Functions
-# def Mask_to_Array(file_path):
-#     img = Image.open(file_path)
-#     array = np.array(img)
-
-#     if array[0,0] != 0:
-#         indices_zero = array == 0
-#         indices_one = array == 1
-
-#         array[indices_one] = 0
-#         array[indices_zero] = 1
-
-#     return array
-
-# def Array_to_STL(array):
-   
-#     verts,faces,normals,values = measure.marching_cubes(array)
-#     stl = mesh.Mesh(np.zeros(faces.shape[0], dtype=mesh.Mesh.dtype))
-
-#     for i, f in enumerate(faces):
-#         stl.vectors[i] = verts[f]
-#     return stl
-
 #Turn Masks output from the Automatic Segmentation Model into STLs or Part Files to inport into Mimics
 from glob import glob
 import os, pdb, argparse, shutil
